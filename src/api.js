@@ -104,6 +104,11 @@ export async function getJobLogs(jobId) {
   if(!res.ok) return ""; return res.text();
 }
 export async function startServer(inputs) {
+  // Use Pterodactyl instead of GitHub Actions
+  if (isUsingPterodactyl()) {
+    return await pteroCreateServer(inputs);
+  }
+  // Fallback to GitHub Actions (deprecated)
   await triggerWorkflow("start-server.yml", inputs);
   await new Promise(r=>setTimeout(r,4000));
   const runs = await getWorkflowRuns("start-server.yml",1);
@@ -198,6 +203,13 @@ export async function getStats(runId) {
 }
 
 export async function triggerInstallMod(inputs) {
+  // Use Pterodactyl for mod installation
+  if (isUsingPterodactyl()) {
+    // TODO: Implement Pterodactyl file upload for mods
+    console.log("Mod installation via Pterodactyl not yet implemented");
+    return;
+  }
+  // Fallback to GitHub Actions (deprecated)
   await triggerWorkflow("install-mod.yml", inputs);
 }
 

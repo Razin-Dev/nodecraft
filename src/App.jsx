@@ -1418,8 +1418,7 @@ export default function Panel() {
               name: s.attributes.name,
               pteroId: s.attributes.identifier,
               type: s.attributes.egg?.name || "Minecraft",
-              version: s.attributes.egg?.name?.includes("1.21") ? "1.21.4" : 
-                      s.attributes.egg?.name?.includes("1.20") ? "1.20.4" : "1.20.4",
+              version: s.attributes.egg?.name?.match(/1\.\d+/)?.[0] || "1.21",
               ram: Math.round((s.attributes.limits.memory || 2048) / 1024) + "G",
               port: s.port || s.attributes.allocation?.attributes?.port || 25565,
               ip: s.ip || "--",

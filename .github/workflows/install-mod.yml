@@ -1,0 +1,69 @@
+name: Install Plugin/Mod
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'Modrinth project ID or slug'
+        required: true
+      game_version:
+        description: 'Minecraft version (e.g., 1.20.4)'
+        required: true
+      loader:
+        description: 'Loader (e.g., paper, fabric, forge)'
+        required: true
+      is_plugin:
+        description: 'Is it a plugin (true) or mod (false)?'
+        required: true
+
+jobs:
+  install-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and Download File
+        id: download
+        run: |
+          echo "Searching for ${{ inputs.project_id }} for MC ${{ inputs.game_version }} on ${{ inputs.loader }}"
+          
+          # Get the list of versions from Modrinth API
+          VERSIONS_URL="https://api.modrinth.com/v2/project/${{ inputs.project_id }}/version"
+          VERSIONS_JSON=$(curl -s "$VERSIONS_URL?loaders=%5B%22${{ inputs.loader }}%22%5D&game_versions=%5B%22${{ inputs.game_version }}%22%5D")
+          
+          # Find the first file in the first matching version
+          FILE_URL=$(echo "$VERSIONS_JSON" | jq -r '.[0].files[0].url')
+          FILE_NAME=$(echo "$VERSIONS_JSON" | jq -r '.[0].files[0].filename')
+
+          if [ -z "$FILE_URL" ] || [ "$FILE_URL" == "null" ]; then
+            echo "::error::No compatible file found for this version."
+            exit 1
+          fi
+
+          echo "Found file: $FILE_NAME"
+          echo "Downloading from: $FILE_URL"
+          curl -L -o "$FILE_NAME" "$FILE_URL"
+
+          echo "file_name=$FILE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Commit File to Repo
+        run: |
+          INSTALL_PATH=$([ "${{ inputs.is_plugin }}" == "true" ] && echo "plugins" || echo "mods")
+          mkdir -p "$INSTALL_PATH"
+          mv "${{ steps.download.outputs.file_name }}" "$INSTALL_PATH/"
+
+          git config --global user.name "NodeCraft Bot"
+          git config --global user.email "bot@nodecraft.dev"
+          
+          git add "$INSTALL_PATH/${{ steps.download.outputs.file_name }}"
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "File already exists and is up to date. Nothing to commit."
+          else
+            git commit -m "Install ${{ inputs.project_id }} via NodeCraft"
+            git push
+            echo "File committed and pushed to repository."
+          fi

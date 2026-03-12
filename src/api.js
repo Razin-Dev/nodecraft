@@ -25,6 +25,59 @@ const pteroHeaders = () => ({
   "Content-Type": "application/json"
 });
 
+// ============ MODRINTH API ============
+const MODRINTH_API = "https://api.modrinth.com/v2";
+
+export async function searchModrinth(query, type = "mod", gameVersion = "1.21") {
+  // type: "plugin" or "mod"
+  const category = type === "plugin" ? "mod" : "mod";
+  const searchQuery = query || "";
+  const url = `${MODRINTH_API}/search?query=${encodeURIComponent(searchQuery)}&game_version=${gameVersion}&facets=[["categories:${category}"]]&limit=20`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.hits || [];
+}
+
+export async function getModrinthProject(projectId) {
+  const res = await fetch(`${MODRINTH_API}/project/${projectId}`);
+  return res.json();
+}
+
+export async function getModrinthVersions(projectId) {
+  const res = await fetch(`${MODRINTH_API}/project/${projectId}/version`);
+  return res.json();
+}
+
+export async function getModrinthFiles(projectId, versionId) {
+  const res = await fetch(`${MODRINTH_API}/project/${projectId}/version/${versionId}`);
+  return res.json();
+}
+
+// ============ CURSEFORGE API ============
+const CURSEFORGE_API = "https://api.curseforge.com/v1";
+const CURSEFORGE_KEY = "$2a$10$8K1p/a0dL/.6/JItqV4nz.6.sLM4wDqE4P3hP.zJpkRdKxJ3wC3JS"; // Public API key
+
+export async function searchCurseForge(query, gameVersion = "1.21") {
+  const res = await fetch(`${CURSEFORGE_API}/mods/search?searchText=${encodeURIComponent(query)}&gameVersion=${gameVersion}&index=0&pageSize=20`, {
+    headers: { "x-api-key": CURSEFORGE_KEY }
+  });
+  return res.json();
+}
+
+export async function getCurseForgeMod(modId) {
+  const res = await fetch(`${CURSEFORGE_API}/mods/${modId}`, {
+    headers: { "x-api-key": CURSEFORGE_KEY }
+  });
+  return res.json();
+}
+
+export async function getCurseForgeFiles(modId) {
+  const res = await fetch(`${CURSEFORGE_API}/mods/${modId}/files`, {
+    headers: { "x-api-key": CURSEFORGE_KEY }
+  });
+  return res.json();
+}
+
 // GitHub Actions API Functions
 export async function triggerWorkflow(workflow, inputs={}) {
   const res = await fetch(`https://api.github.com/repos/${OWNER()}/${REPO()}/actions/workflows/${workflow}/dispatches`,
@@ -74,11 +127,6 @@ export async function saveFile(path, content, sha, message="Update via NodeCraft
   const res = await fetch(`https://api.github.com/repos/${OWNER()}/${REPO()}/contents/${path}`,
     { method:"PUT", headers:gh, body:JSON.stringify({message,content:btoa(unescape(encodeURIComponent(content))),sha}) });
   return res.ok;
-}
-export async function searchModrinth(query, type="plugin", limit=20) {
-  const facets = encodeURIComponent(`[["project_type:${type}"]]`);
-  const res = await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(query)}&facets=${facets}&limit=${limit}`);
-  const d = await res.json(); return d.hits||[];
 }
 export async function validateToken() {
   if (isUsingPterodactyl()) {

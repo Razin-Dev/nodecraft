@@ -102,6 +102,14 @@ function AddServerModal({onClose,onCreate}) {
   const handleCreate = async () => {
     if (!f.name.trim()) return;
     
+    // Check Pterodactyl is configured
+    const pteroUrl = localStorage.getItem("nc_ptero_url");
+    const pteroKey = localStorage.getItem("nc_ptero_key");
+    if (!pteroUrl || !pteroKey) {
+      alert("Please configure Pterodactyl in Settings first!");
+      return;
+    }
+    
     // Always use Pterodactyl mode
     setCreating(true);
     try {
@@ -1241,10 +1249,10 @@ export default function Panel() {
   const [showDelete,setShowDelete]=useState(null);
   const [user,setUser]=useState(null);
   const [stats, setStats]=useState({});
-  const [setupDone,setSetupDone]=useState(()=>!!localStorage.getItem("nc_token"));
+  const [setupDone,setSetupDone]=useState(()=>!!(localStorage.getItem("nc_ptero_url") && localStorage.getItem("nc_ptero_key")));
 
   function SetupScreen({onSave}) {
-  const [mode, setMode] = useState("github"); // "github" or "pterodactyl"
+  const [mode, setMode] = useState("pterodactyl"); // "github" or "pterodactyl"
   const [token,setToken]=useState("");
   const [owner,setOwner]=useState("");
   const [repo,setRepo]=useState("");
